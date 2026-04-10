@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -ne 2 || " $* " == *" --help "* ]]; then
+  echo "Usage: debi_login <user> <password>" >&2
+  exit 1
+fi
+
+user="$1"
+password="$2"
+
+# su as root skips password check, so run su from a non-root user
+sudo -u "$user" bash -c "echo '$password' | su -c 'true' '$user'" > /dev/null 2>&1

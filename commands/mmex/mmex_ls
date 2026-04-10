@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -ne 2 || " $* " == *" --help "* ]]; then
+  echo "Usage: mmex_ls <as_user> <path>" >&2
+  exit 1
+fi
+
+result=$(pquery --cmd=readfiles "$1" "$2" --json)
+if [ $? -ne 0 ]; then exit 1; fi
+echo "$result" | jq -r '.files[] | .name'

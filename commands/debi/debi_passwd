@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -ne 2 || " $* " == *" --help "* ]]; then
+  echo "Usage: debi_passwd <user> <new_password>" >&2
+  exit 1
+fi
+
+echo "$1:$2" | sudo chpasswd > /dev/null 2>&1

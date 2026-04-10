@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -ne 1 || " $* " == *" --help "* ]]; then
+  echo "Usage: debi_listusergroups <user>" >&2
+  exit 1
+fi
+
+user="$1"
+
+sudo id -nG "$user" | tr ' ' '\n' | sort -u

@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -lt 2 || $# -gt 4 || " $* " == *" --help "* ]]; then
+  echo "Usage: debi_createuser <user> <password> [createdir] [superuser]" >&2
+  exit 1
+fi
+
+user="$1"
+password="$2"
+createdir="${3:-true}"
+superuser="${4:-false}"
+
+sudo addgroup "$user" > /dev/null 2>&1
+
+adduser_opts=("--ingroup" "$user" "--gecos" "" "--disabled-password")
+if [[ "$createdir" == "false" ]]; then
+  adduser_opts+=("--no-create-home")
+fi
+sudo adduser "${adduser_opts[@]}" "$user" > /dev/null 2>&1
+
+echo "$user:$password" | sudo chpasswd > /dev/null 2>&1
+
+if [[ "$superuser" == "true" ]]; then
+  sudo usermod -aG sudo "$user" > /dev/null 2>&1
+fi
+

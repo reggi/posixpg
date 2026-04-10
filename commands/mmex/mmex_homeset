@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -ne 1 || " $* " == *" --help "* ]]; then
+  echo "Usage: mmex_homeset <path>" >&2
+  exit 1
+fi
+
+path="$1"
+
+pquery --cmd=homeset "$path"

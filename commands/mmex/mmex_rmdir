@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -ne 2 || " $* " == *" --help "* ]]; then
+  echo "Usage: mmex_rmdir <as_user> <path>" >&2
+  exit 1
+fi
+
+pquery --cmd=rmdir "$1" "$2" --silent

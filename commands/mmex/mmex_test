@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -ne 3 || " $* " == *" --help "* ]]; then
+  echo "Usage: mmex_test <as_user> <flag> <path>" >&2
+  exit 1
+fi
+
+result=$(pquery --cmd=test "$1" "$2" "$3")
+if [[ "$result" == "t" ]]; then
+  exit 0
+else
+  exit 1
+fi

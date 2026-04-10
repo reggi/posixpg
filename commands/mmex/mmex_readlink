@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -ne 2 || " $* " == *" --help "* ]]; then
+  echo "Usage: mmex_readlink <as_user> <path>" >&2
+  exit 1
+fi
+
+pquery --cmd=readlink "$1" "$2"

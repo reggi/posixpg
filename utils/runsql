@@ -1,0 +1,47 @@
+#!/bin/bash
+
+# Check usage
+if [ "$#" -lt 1 ]; then
+  echo "Usage: $0 <sql-file> [arg1] [arg2] [arg3] ..."
+  exit 1
+fi
+
+SQL_FILE="$1"
+shift
+ARGS=("$@")
+
+SQL_QUERY=$(cat "$SQL_FILE")
+NUM_ARGS=${#ARGS[@]}
+
+PLACEHOLDERS=$(printf "\$%s, " $(seq 1 "$NUM_ARGS"))
+PLACEHOLDERS=${PLACEHOLDERS%, }
+
+EXECUTE_LINE="EXECUTE stmt($(
+  printf "'%s'," "${ARGS[@]}"
+  echo
+) | sed 's/,$//');"
+
+if [ "$NUM_ARGS" -gt 0 ]; then
+  # build a comma-separated list of "text" for each param
+  PARAM_TYPES=$(yes text | head -n "$NUM_ARGS" | paste -sd, -)
+  FULL_SQL=$(cat <<EOF
+PREPARE stmt($PARAM_TYPES) AS
+$SQL_QUERY;
+$EXECUTE_LINE
+DEALLOCATE stmt;
+EOF
+)
+else
+  # no args, just run the SQL directly
+  FULL_SQL="$SQL_QUERY"
+fi
+
+sudo -u postgres PGPASSWORD="$POSTGRES_PASSWORD" psql -h localhost -p 5432 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "$FULL_SQL"
+
+# Check if the command was successful
+if [ $? -eq 0 ]; then
+  echo "SQL script executed successfully."
+else
+  echo "Failed to execute SQL script."
+  exit 1
+fi

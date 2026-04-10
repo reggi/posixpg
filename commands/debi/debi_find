@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -lt 2 || $# -gt 3 || " $* " == *" --help "* ]]; then
+  echo "Usage: debi_find <as_user> <path> [name_pattern]" >&2
+  exit 1
+fi
+
+as_user="$1"
+path="$2"
+pattern="${3:-}"
+
+if [[ -n "$pattern" ]]; then
+  sudo -u "$as_user" find "$path" -name "$pattern" 2>/dev/null | sort
+else
+  sudo -u "$as_user" find "$path" -mindepth 1 2>/dev/null | sort
+fi

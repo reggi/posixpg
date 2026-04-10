@@ -1,0 +1,35 @@
+# yaml-language-server: $schema=../utils/schema.json
+name: umask affects default file creation permissions
+runs:
+  - MASK: 77
+    USER: alice
+    EXPECTED: 600
+  - MASK: 22
+    USER: bob
+    EXPECTED: 644
+tests:
+  - command: dirmodeset
+    args:
+      mode: 777
+  - command: homeset
+    args:
+      path: /home
+  - command: umask
+    comment: set the umask
+    args:
+      mask: $MASK
+  - command: createuser
+    args:
+      user: $USER
+      password: pass
+  - command: mkfile
+    args:
+      as_user: $USER
+      path: /home/$USER/file.txt
+      content: 'data'
+  - command: fileperm
+    comment: file permissions should reflect umask
+    args:
+      as_user: $USER
+      path: /home/$USER/file.txt
+    expectStdout: $EXPECTED

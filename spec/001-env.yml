@@ -1,0 +1,29 @@
+# yaml-language-server: $schema=../utils/schema.json
+name: test home and dir modes
+runs: 
+  - PERM: 755
+    HOME: /home
+    USER: bob
+  - PERM: 750
+    HOME: /users
+    USER: alice
+tests:
+  - command: dirmodeset
+    comment: Set default directory mode
+    args:
+      mode: $PERM
+  - command: homeset
+    comment: Set default home directory
+    args:
+      path: $HOME
+  - command: createuser
+    comment: Create user
+    args:
+      user: $USER
+      password: password
+  - command: fileperm
+    comment: check permissions of home dir
+    args:
+      as_user: $USER
+      path: $HOME/$USER
+    expectStdout: $PERM

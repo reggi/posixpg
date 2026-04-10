@@ -1,0 +1,53 @@
+# yaml-language-server: $schema=../utils/schema.json
+name: ancestor directory restriction blocks descendant access
+tests:
+  - command: dirmodeset
+    args:
+      mode: 755
+  - command: homeset
+    args:
+      path: /home
+  - command: createuser
+    args:
+      user: alice
+      password: alice
+  - command: createuser
+    args:
+      user: bob
+      password: bob
+  - command: mkdir
+    comment: alice creates a nested directory structure
+    args:
+      as_user: alice
+      path: /home/alice/projects
+      mode: 755
+  - command: mkdir
+    args:
+      as_user: alice
+      path: /home/alice/projects/docs
+      mode: 755
+  - command: mkfile
+    comment: file deep in the tree is world-readable
+    args:
+      as_user: alice
+      path: /home/alice/projects/docs/readme.txt
+      content: 'public info'
+      mode: 644
+  - command: cat
+    comment: bob CAN read before restriction
+    args:
+      as_user: bob
+      path: /home/alice/projects/docs/readme.txt
+    expectStdout: 'public info'
+  - command: chmod
+    comment: alice locks the ancestor directory
+    args:
+      as_user: alice
+      mode: 700
+      path: /home/alice/projects
+  - command: cat
+    comment: bob CANNOT read — ancestor blocks traversal
+    args:
+      as_user: bob
+      path: /home/alice/projects/docs/readme.txt
+    expectExitCode: 1

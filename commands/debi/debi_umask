@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -gt 1 || " $* " == *" --help "* ]]; then
+  echo "Usage: debi_umask [mask]" >&2
+  exit 1
+fi
+
+UMASK_FILE="/tmp/.memex_umask"
+
+if [[ $# -eq 1 ]]; then
+  # Set: apply real umask and persist for other commands
+  umask "$(printf '%04d' "$1")"
+  printf '%04d' "$1" > "$UMASK_FILE"
+else
+  # Get: read real umask, fall back to persisted value
+  if [[ -f "$UMASK_FILE" ]]; then
+    umask "$(cat "$UMASK_FILE")"
+  fi
+  umask | sed 's/^0*//' | sed 's/^$/0/'
+fi

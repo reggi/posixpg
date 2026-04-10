@@ -1,0 +1,45 @@
+# yaml-language-server: $schema=../utils/schema.json
+name: tests group permissions and chgrp
+tests:
+  - command: dirmodeset
+    comment: Set default directory mode
+    args:
+      mode: 755
+  - command: homeset
+    comment: Set default home directory
+    args:
+      path: /home
+  - command: createuser
+    args:
+      user: alice
+      password: alice
+  - command: createuser
+    args:
+      user: bob
+      password: bob
+  - command: mkfile
+    args: 
+      as_user: alice
+      mode: 770
+      path: /home/alice/baz.txt
+      content: 'example content'
+  - command: mkgroup
+    args:
+      group: baz
+  - command: addusertogroup
+    args:
+      as_user: bob
+      group: baz
+  - command: addusertogroup
+    args:
+      as_user: alice
+      group: baz
+  - command: chgrp
+    args:
+      as_user: alice
+      group: baz
+      path: /home/alice/baz.txt
+  - command: cat
+    args:
+      as_user: bob
+      path: /home/alice/baz.txt

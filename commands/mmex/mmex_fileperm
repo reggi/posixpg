@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -ne 2 || " $* " == *" --help "* ]]; then
+  echo "Usage: mmex_fileperm <as_user> <path>" >&2
+  exit 1
+fi
+
+
+# can a user that doesn't have access to a file, see it's permissions?
+
+as_user="$1"
+path="$2"
+
+pquery \
+  --set=user="'$as_user'" \
+  --set=abs_path="'$path'" <<EOF
+SELECT decimal_perm_bits FROM readfile(:user, :abs_path);
+EOF

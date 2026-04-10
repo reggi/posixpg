@@ -1,0 +1,50 @@
+# yaml-language-server: $schema=../utils/schema.json
+name: rmdir removes empty directories and fails on non-empty
+tests:
+  - command: dirmodeset
+    args:
+      mode: 755
+  - command: homeset
+    args:
+      path: /home
+  - command: createuser
+    args:
+      user: alice
+      password: alice
+  - command: mkdir
+    args:
+      as_user: alice
+      path: /home/alice/empty
+      mode: 755
+  - command: mkdir
+    args:
+      as_user: alice
+      path: /home/alice/notempty
+      mode: 755
+  - command: mkfile
+    args:
+      as_user: alice
+      path: /home/alice/notempty/file.txt
+      content: 'data'
+  - command: rmdir
+    comment: cannot rmdir a non-empty directory
+    args:
+      as_user: alice
+      path: /home/alice/notempty
+    expectExitCode: 1
+  - command: rmdir
+    comment: can rmdir an empty directory
+    args:
+      as_user: alice
+      path: /home/alice/empty
+  - command: ls
+    comment: empty dir is gone
+    args:
+      as_user: alice
+      path: /home/alice
+  - command: rmdir
+    comment: cannot rmdir a file
+    args:
+      as_user: alice
+      path: /home/alice/notempty/file.txt
+    expectExitCode: 1

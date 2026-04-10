@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -ne 1 || " $* " == *" --help "* ]]; then
+  echo "Usage: debi_dirmodeset <mode>" >&2
+  exit 1
+fi
+
+CONFIG_FILE="/etc/adduser.conf"
+MODE="$1"
+
+# Check for root permissions
+if [[ $EUID -ne 0 ]]; then
+  echo "This script must be run as root." >&2
+  exit 1
+fi
+
+# Validate mode (should be a 3 or 4 digit octal number)
+if ! [[ $MODE =~ ^[0-7]{3,4}$ ]]; then
+  echo "Error: Mode must be a 3 or 4 digit octal number (e.g., 755 or 0755)." >&2
+  exit 1
+fi
+
+# Update or add DIR_MODE in the config file
+if grep -q '^DIR_MODE=' "$CONFIG_FILE"; then
+  sed -i.bak "s/^DIR_MODE=.*/DIR_MODE=$MODE/" "$CONFIG_FILE"
+else
+  echo "DIR_MODE=$MODE" >> "$CONFIG_FILE"
+fi
+
+exit 0

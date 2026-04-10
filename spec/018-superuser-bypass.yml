@@ -1,0 +1,48 @@
+# yaml-language-server: $schema=../utils/schema.json
+name: superuser bypasses all permission checks
+tests:
+  - command: dirmodeset
+    args:
+      mode: 755
+  - command: homeset
+    args:
+      path: /home
+  - command: createuser
+    args:
+      user: alice
+      password: alice
+  - command: mkdir
+    comment: alice creates a fully locked directory
+    args:
+      as_user: alice
+      path: /home/alice/locked
+      mode: 700
+  - command: mkfile
+    comment: alice creates a file with no access for others
+    args:
+      as_user: alice
+      path: /home/alice/locked/secret.txt
+      content: 'only root can see this'
+      mode: 600
+  - command: cat
+    comment: root CAN read despite 700/600 permissions (superuser bypass)
+    args:
+      as_user: root
+      path: /home/alice/locked/secret.txt
+    expectStdout: 'only root can see this'
+  - command: ls
+    comment: root CAN list the locked directory
+    args:
+      as_user: root
+      path: /home/alice/locked
+  - command: rm
+    comment: root CAN delete alice's protected file
+    args:
+      as_user: root
+      path: /home/alice/locked/secret.txt
+  - command: cat
+    comment: file is gone
+    args:
+      as_user: root
+      path: /home/alice/locked/secret.txt
+    expectExitCode: 1

@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# require at least user and path
+if [[ $# -ne 1 || " $* " == *" --help "* ]]; then
+  echo "Usage: mmex_mkgroup <group>" >&2
+  exit 1
+fi
+
+group="$1"
+
+pquery --cmd=mkgroup "$group"

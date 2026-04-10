@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -lt 2 || " $* " == *" --help "* ]]; then
+  echo "Usage: debi_fileperm <as_user> <path>" >&2
+  exit 1
+fi
+
+as_user="$1"
+path="$2"
+
+sudo -u "$as_user" stat -c '%a' -- "$path"
+

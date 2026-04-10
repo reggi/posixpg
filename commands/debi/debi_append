@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -ne 3 || " $* " == *" --help "* ]]; then
+  echo "Usage: debi_append <as_user> <path> <content>" >&2
+  exit 1
+fi
+
+sudo -u "$1" bash -c "cat >> '$2'" <<< "$3"

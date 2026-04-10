@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -ne 1 || " $* " == *" --help "* ]]; then
+  echo "Usage: debi_deleteuser <user>" >&2
+  exit 1
+fi
+
+user="$1"
+
+sudo deluser --remove-home "$user" > /dev/null 2>&1
+sudo delgroup "$user" > /dev/null 2>&1 || true

@@ -1,0 +1,58 @@
+# yaml-language-server: $schema=../utils/schema.json
+name: dynamic chmod blocks and restores file creation
+tests:
+  - command: dirmodeset
+    args:
+      mode: 755
+  - command: homeset
+    args:
+      path: /home
+  - command: createuser
+    args:
+      user: alice
+      password: alice
+  - command: createuser
+    args:
+      user: bob
+      password: bob
+  - command: mkdir
+    args:
+      as_user: alice
+      path: /home/alice/workspace
+      mode: 777
+  - command: mkfile
+    comment: bob CAN create files in 777 dir
+    args:
+      as_user: bob
+      path: /home/alice/workspace/v1.txt
+      content: 'version 1'
+  - command: chmod
+    comment: alice locks the directory
+    args:
+      as_user: alice
+      mode: 700
+      path: /home/alice/workspace
+  - command: mkfile
+    comment: bob CANNOT create files after lockdown
+    args:
+      as_user: bob
+      path: /home/alice/workspace/v2.txt
+      content: 'should fail'
+    expectExitCode: 1
+  - command: chmod
+    comment: alice restores access
+    args:
+      as_user: alice
+      mode: 777
+      path: /home/alice/workspace
+  - command: mkfile
+    comment: bob CAN create files again
+    args:
+      as_user: bob
+      path: /home/alice/workspace/v3.txt
+      content: 'version 3'
+  - command: cat
+    args:
+      as_user: alice
+      path: /home/alice/workspace/v3.txt
+    expectStdout: 'version 3'

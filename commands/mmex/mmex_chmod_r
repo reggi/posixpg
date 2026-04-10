@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -ne 3 || " $* " == *" --help "* ]]; then
+  echo "Usage: mmex_chmod_r <as_user> <mode> <path>" >&2
+  exit 1
+fi
+
+pquery --cmd=chmod_r "$1" "$2" "$3" --silent

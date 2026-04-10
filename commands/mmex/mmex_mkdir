@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# require at least user and path
+if [[ $# -lt 2 || $# -gt 3 || " $* " == *" --help "* ]]; then
+  echo "Usage: mmex_mkdir <as_user> <path> [mode]" >&2
+  exit 1
+fi
+
+as_user="$1"
+path="$2"
+mode="${3:-null}" # default mode if not provided
+
+pquery \
+  --quiet \
+  --tuples-only \
+  --no-align \
+  --set=username="'$as_user'" \
+  --set=abs_path="'$path'" \
+  --set=mode=$mode <<EOF
+SELECT * FROM mkdir(:username, :abs_path, :mode);
+EOF

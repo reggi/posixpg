@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -ne 2 || " $* " == *" --help "* ]]; then
+  echo "Usage: mmex_checkauth <as_user> <path>" >&2
+  exit 1
+fi
+
+pquery --cmd=checkauth "$1" "$2" --json | jq -r '
+  (.read_perm   as $r |
+   .write_perm  as $w |
+   .execute_perm as $x |
+   (if $r then "r" else "-" end) +
+   (if $w then "w" else "-" end) +
+   (if $x then "x" else "-" end))
+'

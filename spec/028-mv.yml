@@ -1,0 +1,64 @@
+# yaml-language-server: $schema=../utils/schema.json
+name: move and rename files and directories
+tests:
+  - command: dirmodeset
+    args:
+      mode: 755
+  - command: homeset
+    args:
+      path: /home
+  - command: createuser
+    args:
+      user: alice
+      password: alice
+  - command: createuser
+    args:
+      user: bob
+      password: bob
+  - command: mkfile
+    comment: create a file to move
+    args:
+      as_user: alice
+      path: /home/alice/original.txt
+      content: 'move me'
+  - command: mv
+    comment: rename a file
+    args:
+      as_user: alice
+      src: /home/alice/original.txt
+      dest: /home/alice/renamed.txt
+  - command: cat
+    comment: file accessible at new name
+    args:
+      as_user: alice
+      path: /home/alice/renamed.txt
+    expectStdout: 'move me'
+  - command: cat
+    comment: old name is gone
+    args:
+      as_user: alice
+      path: /home/alice/original.txt
+    expectExitCode: 1
+  - command: mkdir
+    args:
+      as_user: alice
+      path: /home/alice/subdir
+      mode: 755
+  - command: mv
+    comment: move file into subdirectory
+    args:
+      as_user: alice
+      src: /home/alice/renamed.txt
+      dest: /home/alice/subdir/renamed.txt
+  - command: cat
+    args:
+      as_user: alice
+      path: /home/alice/subdir/renamed.txt
+    expectStdout: 'move me'
+  - command: mv
+    comment: bob cannot move alice's file (no write on alice's dir)
+    args:
+      as_user: bob
+      src: /home/alice/subdir/renamed.txt
+      dest: /home/bob/stolen.txt
+    expectExitCode: 1

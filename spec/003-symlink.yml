@@ -1,0 +1,36 @@
+# yaml-language-server: $schema=../utils/schema.json
+name: read a symlink
+tests:
+  - command: dirmodeset
+    comment: Set default directory mode
+    args:
+      mode: 755
+  - command: homeset
+    comment: Set default home directory
+    args:
+      path: /home
+  - command: createuser
+    args:
+      user: alice
+      password: alice
+  - command: mkdir
+    args:
+      as_user: alice
+      mode: 755
+      path: /home/alice/foo
+  - command: mkfile
+    args:
+      as_user: alice
+      mode: 755
+      path: /home/alice/foo/original.txt
+      content: 'symlink content'
+  - command: ln
+    args:
+      as_user: alice
+      src: /home/alice/foo/original.txt
+      dest: /home/alice/foo/symlink.txt
+  - command: cat
+    args:
+      as_user: alice
+      path: /home/alice/foo/symlink.txt
+    expectStdout: 'symlink content'

@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -ne 1 || " $* " == *" --help "* ]]; then
+  echo "Usage: debi_id <user>" >&2
+  exit 1
+fi
+
+user="$1"
+
+group=$(id -gn "$user" 2>/dev/null)
+home_dir=$(eval echo "~$user")
+if [ "$(id -u "$user" 2>/dev/null)" -eq 0 ]; then
+  superuser="true"
+else
+  superuser="false"
+fi
+
+echo "User: $user"
+echo "Group: $group"
+echo "Home: $home_dir"
+echo "Superuser: $superuser"

@@ -1,0 +1,64 @@
+# yaml-language-server: $schema=../utils/schema.json
+name: nested symlink chain resolves correctly with permissions
+tests:
+  - command: dirmodeset
+    args:
+      mode: 755
+  - command: homeset
+    args:
+      path: /home
+  - command: createuser
+    args:
+      user: alice
+      password: alice
+  - command: createuser
+    args:
+      user: bob
+      password: bob
+  - command: mkdir
+    args:
+      as_user: alice
+      path: /home/alice/data
+      mode: 755
+  - command: mkfile
+    comment: the real file
+    args:
+      as_user: alice
+      path: /home/alice/data/target.txt
+      content: 'the real content'
+  - command: ln
+    comment: first symlink pointing to target
+    args:
+      as_user: alice
+      src: /home/alice/data/target.txt
+      dest: /home/alice/data/link1.txt
+  - command: ln
+    comment: second symlink pointing to first symlink (chain of 2)
+    args:
+      as_user: alice
+      src: /home/alice/data/link1.txt
+      dest: /home/alice/data/link2.txt
+  - command: cat
+    comment: reading through chain returns the real content
+    args:
+      as_user: bob
+      path: /home/alice/data/link2.txt
+    expectStdout: 'the real content'
+  - command: cat
+    comment: reading first link also works
+    args:
+      as_user: bob
+      path: /home/alice/data/link1.txt
+    expectStdout: 'the real content'
+  - command: chmod
+    comment: lock the data directory
+    args:
+      as_user: alice
+      mode: 700
+      path: /home/alice/data
+  - command: cat
+    comment: bob cannot read through chain when target dir is locked
+    args:
+      as_user: bob
+      path: /home/alice/data/link2.txt
+    expectExitCode: 1

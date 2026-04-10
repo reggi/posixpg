@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -ne 3 || " $* " == *" --help "* ]]; then
+  echo "Usage: mmex_append <as_user> <path> <content>" >&2
+  exit 1
+fi
+
+pquery --cmd=editfile "$1" "$2" "$3" true --silent

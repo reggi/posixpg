@@ -1,0 +1,72 @@
+# yaml-language-server: $schema=../utils/schema.json
+name: non-owner cannot chmod or chgrp even with write access
+tests:
+  - command: dirmodeset
+    args:
+      mode: 755
+  - command: homeset
+    args:
+      path: /home
+  - command: createuser
+    args:
+      user: alice
+      password: alice
+  - command: createuser
+    args:
+      user: bob
+      password: bob
+  - command: mkgroup
+    args:
+      group: team
+  - command: addusertogroup
+    args:
+      as_user: alice
+      group: team
+  - command: addusertogroup
+    args:
+      as_user: bob
+      group: team
+  - command: mkfile
+    comment: alice creates a group-writable file
+    args:
+      as_user: alice
+      path: /home/alice/shared.txt
+      content: 'shared data'
+      mode: 770
+  - command: chgrp
+    comment: alice assigns group team to the file
+    args:
+      as_user: alice
+      group: team
+      path: /home/alice/shared.txt
+  - command: cat
+    comment: bob CAN read via group permissions
+    args:
+      as_user: bob
+      path: /home/alice/shared.txt
+    expectStdout: 'shared data'
+  - command: chmod
+    comment: bob tries to chmod — should fail, only owner can chmod
+    args:
+      as_user: bob
+      mode: 777
+      path: /home/alice/shared.txt
+    expectExitCode: 1
+  - command: fileperm
+    comment: verify permissions unchanged
+    args:
+      as_user: alice
+      path: /home/alice/shared.txt
+    expectStdout: '770'
+  - command: chgrp
+    comment: bob tries to chgrp — should fail, only owner can chgrp
+    args:
+      as_user: bob
+      group: bob
+      path: /home/alice/shared.txt
+    expectExitCode: 1
+  - command: getowner
+    comment: verify ownership unchanged
+    args:
+      path: /home/alice/shared.txt
+    expectStdout: alice

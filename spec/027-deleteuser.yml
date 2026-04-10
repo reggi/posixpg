@@ -1,0 +1,39 @@
+# yaml-language-server: $schema=../utils/schema.json
+name: delete user removes user, home, and group
+tests:
+  - command: dirmodeset
+    args:
+      mode: 755
+  - command: homeset
+    args:
+      path: /home
+  - command: createuser
+    args:
+      user: alice
+      password: alice
+  - command: mkfile
+    comment: alice creates a file in her home
+    args:
+      as_user: alice
+      path: /home/alice/notes.txt
+      content: 'my notes'
+  - command: login
+    comment: alice can login before deletion
+    args:
+      user: alice
+      password: alice
+  - command: deleteuser
+    args:
+      user: alice
+  - command: login
+    comment: alice cannot login after deletion
+    args:
+      user: alice
+      password: alice
+    expectExitCode: 1
+  - command: cat
+    comment: alice's files are gone
+    args:
+      as_user: root
+      path: /home/alice/notes.txt
+    expectExitCode: 1

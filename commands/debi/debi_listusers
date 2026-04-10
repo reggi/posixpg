@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ " $* " == *" --help "* ]]; then
+  echo "Usage: debi_listusers" >&2
+  exit 1
+fi
+
+awk -F: '$3 >= 1000 && $3 < 65534 {print $1}' /etc/passwd

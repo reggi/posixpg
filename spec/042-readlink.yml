@@ -1,0 +1,35 @@
+# yaml-language-server: $schema=../utils/schema.json
+name: readlink shows symlink target path
+tests:
+  - command: dirmodeset
+    args:
+      mode: 755
+  - command: homeset
+    args:
+      path: /home
+  - command: createuser
+    args:
+      user: alice
+      password: alice
+  - command: mkfile
+    args:
+      as_user: alice
+      path: /home/alice/target.txt
+      content: 'real file'
+  - command: ln
+    args:
+      as_user: alice
+      src: /home/alice/target.txt
+      dest: /home/alice/link.txt
+  - command: readlink
+    comment: shows the target path
+    args:
+      as_user: alice
+      path: /home/alice/link.txt
+    expectStdout: /home/alice/target.txt
+  - command: readlink
+    comment: fails on non-symlink
+    args:
+      as_user: alice
+      path: /home/alice/target.txt
+    expectExitCode: 1

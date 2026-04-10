@@ -1,0 +1,47 @@
+# yaml-language-server: $schema=../utils/schema.json
+name: cross-user write to world-writable file
+tests:
+  - command: dirmodeset
+    args:
+      mode: 755
+  - command: homeset
+    args:
+      path: /home
+  - command: createuser
+    args:
+      user: alice
+      password: alice
+  - command: createuser
+    args:
+      user: bob
+      password: bob
+  - command: mkfile
+    comment: alice creates a world-writable file
+    args:
+      as_user: alice
+      path: /home/alice/notes.txt
+      content: 'original'
+      mode: 666
+  - command: cat
+    comment: bob can read the file
+    args:
+      as_user: bob
+      path: /home/alice/notes.txt
+    expectStdout: 'original'
+  - command: mkfile
+    comment: bob overwrites the file (other has write via mode 666)
+    args:
+      as_user: bob
+      path: /home/alice/notes.txt
+      content: 'overwritten by bob'
+  - command: cat
+    comment: content was changed
+    args:
+      as_user: alice
+      path: /home/alice/notes.txt
+    expectStdout: 'overwritten by bob'
+  - command: getowner
+    comment: owner is still alice
+    args:
+      path: /home/alice/notes.txt
+    expectStdout: alice

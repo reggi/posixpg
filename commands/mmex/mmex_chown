@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -ne 3 || " $* " == *" --help "* ]]; then
+  echo "Usage: mmex_chown <as_user> <new_owner> <path>" >&2
+  exit 1
+fi
+
+pquery --cmd=chown "$1" "$2" "$3" --silent

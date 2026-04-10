@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -ne 1 || " $* " == *" --help "* ]]; then
+  echo "Usage: mmex_deleteuser <user>" >&2
+  exit 1
+fi
+
+pquery --cmd=deleteuser "$1" --silent

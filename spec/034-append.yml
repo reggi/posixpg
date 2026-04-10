@@ -1,0 +1,40 @@
+# yaml-language-server: $schema=../utils/schema.json
+name: append adds content to existing files
+tests:
+  - command: dirmodeset
+    args:
+      mode: 755
+  - command: homeset
+    args:
+      path: /home
+  - command: createuser
+    args:
+      user: alice
+      password: alice
+  - command: mkfile
+    args:
+      as_user: alice
+      path: /home/alice/log.txt
+      content: 'line1'
+  - command: append
+    comment: append content to existing file
+    args:
+      as_user: alice
+      path: /home/alice/log.txt
+      content: "\nline2"
+  - command: cat
+    args:
+      as_user: alice
+      path: /home/alice/log.txt
+    expectStdout: "line1\nline2"
+  - command: append
+    comment: append more
+    args:
+      as_user: alice
+      path: /home/alice/log.txt
+      content: "\nline3"
+  - command: cat
+    args:
+      as_user: alice
+      path: /home/alice/log.txt
+    expectStdout: "line1\nline2\nline3"

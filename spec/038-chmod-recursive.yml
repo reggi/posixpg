@@ -1,0 +1,62 @@
+# yaml-language-server: $schema=../utils/schema.json
+name: chmod -R changes permissions recursively
+tests:
+  - command: dirmodeset
+    args:
+      mode: 755
+  - command: homeset
+    args:
+      path: /home
+  - command: createuser
+    args:
+      user: alice
+      password: alice
+  - command: createuser
+    args:
+      user: bob
+      password: bob
+  - command: mkdir
+    args:
+      as_user: alice
+      path: /home/alice/tree
+      mode: 755
+  - command: mkdir
+    args:
+      as_user: alice
+      path: /home/alice/tree/sub
+      mode: 755
+  - command: mkfile
+    args:
+      as_user: alice
+      path: /home/alice/tree/sub/data.txt
+      content: 'secret'
+  - command: cat
+    comment: bob can read before lockdown
+    args:
+      as_user: bob
+      path: /home/alice/tree/sub/data.txt
+    expectStdout: 'secret'
+  - command: chmod_r
+    comment: recursively lock everything to 700
+    args:
+      as_user: alice
+      mode: 700
+      path: /home/alice/tree
+  - command: fileperm
+    comment: parent dir is 700
+    args:
+      as_user: alice
+      path: /home/alice/tree
+    expectStdout: '700'
+  - command: fileperm
+    comment: child dir is 700
+    args:
+      as_user: alice
+      path: /home/alice/tree/sub
+    expectStdout: '700'
+  - command: cat
+    comment: bob cannot read after recursive chmod
+    args:
+      as_user: bob
+      path: /home/alice/tree/sub/data.txt
+    expectExitCode: 1

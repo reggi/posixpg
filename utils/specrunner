@@ -1,0 +1,162 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Usage: ./specrunner <commands-dir> <spec> [platform]
+
+if [[ $# -lt 2 || $# -gt 3 ]]; then
+  echo "Usage: $0 <commands-dir> <spec> [platform]" >&2
+  exit 1
+fi
+
+COMMANDS_DIR="$1"
+SPEC_FILE="$2"
+ARGS_PLACEMENT_FILE="$(dirname "$0")/args_placement.txt"
+
+# Optional: specific platform
+SPECIFIC_PLATFORM=""
+if [[ $# -eq 3 ]]; then
+  SPECIFIC_PLATFORM="$3"
+fi
+
+# Check dependencies
+yq --version > /dev/null 2>&1 || { echo "yq is required" >&2; exit 1; }
+
+# Get all platform prefixes (subdirs in commands dir)
+PLATFORMS=()
+while IFS= read -r d; do
+  [[ -d "$d" ]] && PLATFORMS+=("$(basename "$d")")
+done < <(find "$COMMANDS_DIR" -mindepth 1 -maxdepth 1 -type d)
+
+# Read runs (if present) and tests from YAML
+RUNS_COUNT=$(yq '.runs | length' "$SPEC_FILE" 2>/dev/null || echo 0)
+if [[ "$RUNS_COUNT" == "0" ]]; then
+  RUNS_COUNT=1
+fi
+
+TESTS_COUNT=$(yq '.tests | length' "$SPEC_FILE")
+
+# Helper: get arg order for a command
+get_arg_order() {
+  local cmd="$1"
+  grep -E "^$cmd " "$ARGS_PLACEMENT_FILE" | cut -d' ' -f2-
+}
+
+# Main loop
+PLAT_LOOP=("${PLATFORMS[@]}")
+if [[ -n "$SPECIFIC_PLATFORM" ]]; then
+  PLAT_LOOP=("$SPECIFIC_PLATFORM")
+fi
+for PLATFORM in "${PLAT_LOOP[@]}"; do
+  for ((RUNIDX=0; RUNIDX<RUNS_COUNT; RUNIDX++)); do
+    echo "--- RUN $((RUNIDX+1))/$RUNS_COUNT for PLATFORM: $PLATFORM ---"
+    # Collect run variables
+    declare -A RUNVARS=()
+    if [[ $(yq '.runs' "$SPEC_FILE") != "null" ]]; then
+      for k in $(yq ".runs[$RUNIDX] | keys | .[]" "$SPEC_FILE"); do
+        v=$(yq ".runs[$RUNIDX].$k" "$SPEC_FILE")
+        RUNVARS[$k]="$v"
+      done
+    fi
+    # For each test
+    for ((TIDX=0; TIDX<TESTS_COUNT; TIDX++)); do
+      CMD=$(yq ".tests[$TIDX].command" "$SPEC_FILE")
+      # Compose args
+      ARG_ORDER=( $(get_arg_order "$CMD") )
+      ARGS=()
+      for ARGNAME in "${ARG_ORDER[@]}"; do
+        VAL=$(yq ".tests[$TIDX].args.$ARGNAME" "$SPEC_FILE" 2>/dev/null || echo "")
+        # Substitute run vars
+        for RK in "${!RUNVARS[@]}"; do
+          VAL="${VAL//\$$RK/${RUNVARS[$RK]}}"
+        done
+        # Treat null or empty as empty string
+        if [[ "$VAL" == "null" ]]; then
+          VAL=""
+        fi
+        ARGS+=("$VAL")
+      done
+      # Remove trailing empty args
+      while [[ "${#ARGS[@]}" -gt 0 && -z "${ARGS[-1]}" ]]; do
+        unset 'ARGS[-1]'
+      done
+      # Ensure no gaps: if an arg is set, all previous must be set
+      for ((i=0; i<${#ARGS[@]}; i++)); do
+        if [[ -z "${ARGS[i]}" ]]; then
+          # If any later arg is set, this is a gap (not allowed)
+          for ((j=i+1; j<${#ARGS[@]}; j++)); do
+            if [[ -n "${ARGS[j]}" ]]; then
+              echo "Error: Argument '${ARG_ORDER[i]}' for command '$CMD' is missing but a later argument is set. Args must be contiguous." >&2
+              exit 1
+            fi
+          done
+        fi
+      done
+      # Build command path
+      CMD_PATH="$COMMANDS_DIR/$PLATFORM/${PLATFORM}_$CMD"
+      if [[ ! -x "$CMD_PATH" ]]; then
+        echo "Command not found: $CMD_PATH" >&2
+        exit 1
+      fi
+      # Log the command being run (show each arg in single quotes for clarity)
+      CMD_BASENAME="$(basename "$CMD_PATH")"
+      echo -n "> $CMD_BASENAME"
+      for ARG in "${ARGS[@]}"; do
+        printf " '%s'" "$ARG"
+      done
+      echo
+      # Run command, capture output (use array to preserve argument boundaries)
+      set +e
+      CMD_ARR=("$CMD_PATH" "${ARGS[@]}")
+      OUT=$("${CMD_ARR[@]}" 2>&1)
+      RET=$?
+      set -e
+      # Check expectations
+      EXPECT_EXIT=$(yq ".tests[$TIDX].expectExitCode" "$SPEC_FILE" 2>/dev/null || echo "")
+      EXPECT_STDOUT=$(yq ".tests[$TIDX].expectStdout" "$SPEC_FILE" 2>/dev/null || echo "")
+      EXPECT_STDERR=$(yq ".tests[$TIDX].expectStderr" "$SPEC_FILE" 2>/dev/null || echo "")
+      # Default exit code to 0 if not set
+      if [[ "$EXPECT_EXIT" == "" || "$EXPECT_EXIT" == "null" ]]; then
+        EXPECT_EXIT=0
+      fi
+      # Substitute run vars in EXPECT_STDOUT and EXPECT_STDERR
+      for RK in "${!RUNVARS[@]}"; do
+        EXPECT_STDOUT="${EXPECT_STDOUT//\$$RK/${RUNVARS[$RK]}}"
+        EXPECT_STDERR="${EXPECT_STDERR//\$$RK/${RUNVARS[$RK]}}"
+      done
+      # Convert ints to strings for comparison
+      # Helper: print args in single quotes for error messages
+      format_args() {
+        local out=""
+        for arg in "${ARGS[@]}"; do
+          out+=" '$arg'"
+        done
+        echo "$out"
+      }
+      ARGS_DISPLAY=$(format_args)
+      if [[ "$RET" != "$EXPECT_EXIT" ]]; then
+        echo "FAIL: $CMD ($PLATFORM) exit $RET != $EXPECT_EXIT" >&2
+        echo "  Command: $CMD_BASENAME$ARGS_DISPLAY" >&2
+        echo "  Output: $OUT" >&2
+        echo "  Expected exit: $EXPECT_EXIT" >&2
+        echo "  Actual exit: $RET" >&2
+        exit 1
+      fi
+      # Only check stdout if EXPECT_STDOUT is set and not null
+      if [[ "$EXPECT_STDOUT" != "" && "$EXPECT_STDOUT" != "null" ]]; then
+        # Trim both actual and expected stdout for multi-line support
+        TRIMMED_OUT="$(echo "$OUT" | awk '{$1=$1;print}' ORS='\n' | sed '/^[[:space:]]*$/d')"
+        TRIMMED_EXPECT="$(echo "$EXPECT_STDOUT" | awk '{$1=$1;print}' ORS='\n' | sed '/^[[:space:]]*$/d')"
+        if [[ "$TRIMMED_OUT" != "$TRIMMED_EXPECT" ]]; then
+          echo "FAIL: $CMD ($PLATFORM) stdout does not match expected" >&2
+          echo "  Command: $CMD_BASENAME$ARGS_DISPLAY" >&2
+          echo "  Output: $OUT" >&2
+          echo "  Expected stdout: $EXPECT_STDOUT" >&2
+          exit 1
+        fi
+      fi
+      # (stderr not separated in this simple version)
+    done
+  done
+  echo "PASS: $PLATFORM"
+done
+echo "ALL PLATFORMS PASSED"

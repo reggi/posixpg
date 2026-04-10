@@ -1,0 +1,55 @@
+# yaml-language-server: $schema=../utils/schema.json
+name: mode 000 lockout and recovery via chmod
+tests:
+  - command: dirmodeset
+    args:
+      mode: 755
+  - command: homeset
+    args:
+      path: /home
+  - command: createuser
+    args:
+      user: alice
+      password: alice
+  - command: mkfile
+    args:
+      as_user: alice
+      path: /home/alice/important.txt
+      content: 'critical data'
+  - command: cat
+    comment: alice can read normally
+    args:
+      as_user: alice
+      path: /home/alice/important.txt
+    expectStdout: 'critical data'
+  - command: chmod
+    comment: total lockout
+    args:
+      as_user: alice
+      mode: 000
+      path: /home/alice/important.txt
+  - command: cat
+    comment: even alice cannot read mode 000
+    args:
+      as_user: alice
+      path: /home/alice/important.txt
+    expectExitCode: 1
+  - command: mkfile
+    comment: alice cannot write to mode 000
+    args:
+      as_user: alice
+      path: /home/alice/important.txt
+      content: 'overwrite attempt'
+    expectExitCode: 1
+  - command: chmod
+    comment: but alice CAN chmod her own file back (ownership check, not mode)
+    args:
+      as_user: alice
+      mode: 644
+      path: /home/alice/important.txt
+  - command: cat
+    comment: access restored
+    args:
+      as_user: alice
+      path: /home/alice/important.txt
+    expectStdout: 'critical data'

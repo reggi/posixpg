@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -ne 2 || " $* " == *" --help "* ]]; then
+  echo "Usage: debi_stat <as_user> <path>" >&2
+  exit 1
+fi
+
+result=$(sudo -u "$1" stat -c '  File: %n
+  Type: %F
+  Mode: %a
+ Owner: %U
+ Group: %G' "$2")
+
+# Normalize: basename only, normalize type names
+echo "$result" | sed 's/regular empty file/regular file/' | sed "s|  File: .*/|  File: |"

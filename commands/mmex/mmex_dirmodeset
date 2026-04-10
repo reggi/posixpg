@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -ne 1 || " $* " == *" --help "* ]]; then
+  echo "Usage: mmex_dirmodeset <mode>" >&2
+  exit 1
+fi
+
+key="DEFAULT_DIR_MODE"
+column="int"
+value="$1"
+
+pquery --tuples-only \
+  --set=value="$value" <<EOF
+INSERT INTO env (key, $column) VALUES ('$key', octal(:value))
+  ON CONFLICT (key) DO UPDATE SET $column = octal(:value);
+EOF

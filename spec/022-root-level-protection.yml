@@ -1,0 +1,43 @@
+# yaml-language-server: $schema=../utils/schema.json
+name: non-superuser cannot create at root level
+tests:
+  - command: dirmodeset
+    args:
+      mode: 755
+  - command: homeset
+    args:
+      path: /home
+  - command: createuser
+    args:
+      user: alice
+      password: alice
+  - command: mkdir
+    comment: alice cannot mkdir at root level
+    args:
+      as_user: alice
+      path: /data
+    expectExitCode: 1
+  - command: mkdir
+    comment: root CAN mkdir at root level
+    args:
+      as_user: root
+      path: /data
+  - command: mkfile
+    comment: root creates a file in the new root dir
+    args:
+      as_user: root
+      path: /data/info.txt
+      content: 'system data'
+  - command: cat
+    comment: alice can read from a world-readable root dir
+    args:
+      as_user: alice
+      path: /data/info.txt
+    expectStdout: 'system data'
+  - command: mkfile
+    comment: alice cannot create files in root-owned dir (755)
+    args:
+      as_user: alice
+      path: /data/hack.txt
+      content: 'should fail'
+    expectExitCode: 1

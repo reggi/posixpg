@@ -1,0 +1,69 @@
+# yaml-language-server: $schema=../utils/schema.json
+name: restoring ancestor permissions restores descendant access
+tests:
+  - command: dirmodeset
+    args:
+      mode: 755
+  - command: homeset
+    args:
+      path: /home
+  - command: createuser
+    args:
+      user: alice
+      password: alice
+  - command: createuser
+    args:
+      user: bob
+      password: bob
+  - command: mkdir
+    args:
+      as_user: alice
+      path: /home/alice/a
+      mode: 755
+  - command: mkdir
+    args:
+      as_user: alice
+      path: /home/alice/a/b
+      mode: 755
+  - command: mkdir
+    args:
+      as_user: alice
+      path: /home/alice/a/b/c
+      mode: 755
+  - command: mkfile
+    comment: file deep in the tree, world-readable
+    args:
+      as_user: alice
+      path: /home/alice/a/b/c/data.txt
+      content: 'hello world'
+      mode: 644
+  - command: cat
+    comment: bob CAN read initially
+    args:
+      as_user: bob
+      path: /home/alice/a/b/c/data.txt
+    expectStdout: 'hello world'
+  - command: chmod
+    comment: alice locks the ancestor
+    args:
+      as_user: alice
+      mode: 700
+      path: /home/alice/a
+  - command: cat
+    comment: bob CANNOT read — ancestor blocks
+    args:
+      as_user: bob
+      path: /home/alice/a/b/c/data.txt
+    expectExitCode: 1
+  - command: chmod
+    comment: alice restores ancestor permissions
+    args:
+      as_user: alice
+      mode: 755
+      path: /home/alice/a
+  - command: cat
+    comment: bob SHOULD be able to read again
+    args:
+      as_user: bob
+      path: /home/alice/a/b/c/data.txt
+    expectStdout: 'hello world'

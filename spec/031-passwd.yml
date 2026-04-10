@@ -1,0 +1,34 @@
+# yaml-language-server: $schema=../utils/schema.json
+name: change password then login with new password
+tests:
+  - command: dirmodeset
+    args:
+      mode: 755
+  - command: homeset
+    args:
+      path: /home
+  - command: createuser
+    args:
+      user: alice
+      password: oldpass
+  - command: login
+    comment: can login with original password
+    args:
+      user: alice
+      password: oldpass
+  - command: passwd
+    comment: change password
+    args:
+      user: alice
+      new_password: newpass
+  - command: login
+    comment: old password no longer works
+    args:
+      user: alice
+      password: oldpass
+    expectExitCode: 1
+  - command: login
+    comment: new password works
+    args:
+      user: alice
+      password: newpass

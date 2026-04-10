@@ -1,0 +1,57 @@
+# yaml-language-server: $schema=../utils/schema.json
+name: group member can create files in group-writable directory
+tests:
+  - command: dirmodeset
+    args:
+      mode: 755
+  - command: homeset
+    args:
+      path: /home
+  - command: createuser
+    args:
+      user: alice
+      password: alice
+  - command: createuser
+    args:
+      user: bob
+      password: bob
+  - command: mkgroup
+    args:
+      group: team
+  - command: addusertogroup
+    args:
+      as_user: alice
+      group: team
+  - command: addusertogroup
+    args:
+      as_user: bob
+      group: team
+  - command: mkdir
+    comment: alice creates a team directory
+    args:
+      as_user: alice
+      path: /home/alice/teamdir
+      mode: 770
+  - command: chgrp
+    comment: assign team group to directory
+    args:
+      as_user: alice
+      group: team
+      path: /home/alice/teamdir
+  - command: mkfile
+    comment: bob creates a file in the team directory (group write+exec)
+    args:
+      as_user: bob
+      path: /home/alice/teamdir/bob-notes.txt
+      content: 'bobs contribution'
+  - command: cat
+    comment: alice can read bobs file
+    args:
+      as_user: alice
+      path: /home/alice/teamdir/bob-notes.txt
+    expectStdout: 'bobs contribution'
+  - command: getowner
+    comment: file is owned by bob who created it
+    args:
+      path: /home/alice/teamdir/bob-notes.txt
+    expectStdout: bob

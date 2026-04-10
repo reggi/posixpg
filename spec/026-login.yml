@@ -1,0 +1,30 @@
+# yaml-language-server: $schema=../utils/schema.json
+name: login succeeds with correct password and fails with wrong password
+tests:
+  - command: dirmodeset
+    args:
+      mode: 755
+  - command: homeset
+    args:
+      path: /home
+  - command: createuser
+    args:
+      user: alice
+      password: secretpass
+  - command: login
+    comment: correct password succeeds
+    args:
+      user: alice
+      password: secretpass
+  - command: login
+    comment: wrong password fails
+    args:
+      user: alice
+      password: wrongpass
+    expectExitCode: 1
+  - command: login
+    comment: nonexistent user fails
+    args:
+      user: nobody
+      password: secretpass
+    expectExitCode: 1

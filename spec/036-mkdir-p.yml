@@ -1,0 +1,34 @@
+# yaml-language-server: $schema=../utils/schema.json
+name: mkdir -p creates parent directories automatically
+tests:
+  - command: dirmodeset
+    args:
+      mode: 755
+  - command: homeset
+    args:
+      path: /home
+  - command: createuser
+    args:
+      user: alice
+      password: alice
+  - command: mkdir_p
+    comment: creates all missing parents in one call
+    args:
+      as_user: alice
+      path: /home/alice/a/b/c
+  - command: mkfile
+    comment: can create file in the deepest dir
+    args:
+      as_user: alice
+      path: /home/alice/a/b/c/file.txt
+      content: 'deep file'
+  - command: cat
+    args:
+      as_user: alice
+      path: /home/alice/a/b/c/file.txt
+    expectStdout: 'deep file'
+  - command: mkdir_p
+    comment: no error if path already exists
+    args:
+      as_user: alice
+      path: /home/alice/a/b/c

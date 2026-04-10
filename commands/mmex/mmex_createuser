@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -lt 2 || $# -gt 4 || " $* " == *" --help "* ]]; then
+  echo "Usage: mmex_createuser <user> <password> [createdir] [superuser]" >&2
+  exit 1
+fi
+
+user="$1"
+password="$2"
+createdir="${3:-true}"
+superuser="${4:-false}"
+
+pepper="${BCRYPT_PEPPER:?Error: BCRYPT_PEPPER must be set in env}"
+hash=$(htpasswd -nbBC 10 "" "${password}${pepper}" | tr -d ':\n' | sed 's/^\$2y\$/\$2a\$/')
+
+pquery \
+  --set=user="'$user'" \
+  --set=hash="'$hash'" \
+  --set=createdir="$createdir" \
+  --set=superuser="$superuser" \
+<<EOF
+SELECT (jsonb_agg(row_to_json(t)))[0]
+FROM createuser(:user, :hash, :createdir, :superuser) AS t;
+EOF

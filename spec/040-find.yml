@@ -1,0 +1,77 @@
+# yaml-language-server: $schema=../utils/schema.json
+name: find searches files recursively with optional name pattern
+tests:
+  - command: dirmodeset
+    args:
+      mode: 755
+  - command: homeset
+    args:
+      path: /home
+  - command: createuser
+    args:
+      user: alice
+      password: alice
+  - command: mkdir
+    args:
+      as_user: alice
+      path: /home/alice/project
+      mode: 755
+  - command: mkdir
+    args:
+      as_user: alice
+      path: /home/alice/project/src
+      mode: 755
+  - command: mkdir
+    args:
+      as_user: alice
+      path: /home/alice/project/docs
+      mode: 755
+  - command: mkfile
+    args:
+      as_user: alice
+      path: /home/alice/project/src/main.txt
+      content: 'code'
+  - command: mkfile
+    args:
+      as_user: alice
+      path: /home/alice/project/src/utils.txt
+      content: 'helpers'
+  - command: mkfile
+    args:
+      as_user: alice
+      path: /home/alice/project/docs/readme.md
+      content: 'docs'
+  - command: mkfile
+    args:
+      as_user: alice
+      path: /home/alice/project/config.txt
+      content: 'config'
+  - command: find
+    comment: find all .txt files
+    args:
+      as_user: alice
+      path: /home/alice/project
+      name_pattern: '*.txt'
+    expectStdout: |
+      /home/alice/project/config.txt
+      /home/alice/project/src/main.txt
+      /home/alice/project/src/utils.txt
+  - command: find
+    comment: find all files (no pattern)
+    args:
+      as_user: alice
+      path: /home/alice/project
+    expectStdout: |
+      /home/alice/project/config.txt
+      /home/alice/project/docs
+      /home/alice/project/docs/readme.md
+      /home/alice/project/src
+      /home/alice/project/src/main.txt
+      /home/alice/project/src/utils.txt
+  - command: find
+    comment: find by exact name
+    args:
+      as_user: alice
+      path: /home/alice/project
+      name_pattern: 'readme.md'
+    expectStdout: /home/alice/project/docs/readme.md

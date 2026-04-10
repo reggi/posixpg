@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -ne 2 || " $* " == *" --help "* ]]; then
+  echo "Usage: mmex_stat <as_user> <path>" >&2
+  exit 1
+fi
+
+pquery --cmd=stat "$1" "$2" --json | jq -r '"  File: \(.file_name)\n  Type: \(.file_type)\n  Mode: \(.decimal_mode)\n Owner: \(.owner)\n Group: \(.owner_group)"'

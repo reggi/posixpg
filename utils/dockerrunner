@@ -1,0 +1,94 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Fast test runner: single container, resets DB + system users between specs
+# Usage: ./dockerrunner          # run all specs
+#        ./dockerrunner-fast 7        # run spec 007
+#        ./dockerrunner-fast 7 10 23  # run specs 007, 010, 023
+
+chmod +x ./commands/debi/* ./commands/mmex/* ./utils/*
+
+docker build -t posixpg:base . > /dev/null 2>&1
+
+specfiles=()
+
+if [ $# -gt 0 ]; then
+  for arg in "$@"; do
+    specnum=$(printf "%03d" "$arg")
+    matches=(./spec/${specnum}-*.yml)
+    if [ ${#matches[@]} -eq 0 ] || [ ! -e "${matches[0]}" ]; then
+      # try 4-digit match (e.g. 1000, 1001)
+      matches=(./spec/${arg}-*.yml ./spec/${arg}.yml)
+      found=0
+      for m in "${matches[@]}"; do
+        if [ -e "$m" ]; then
+          specfiles+=("$m")
+          found=1
+          break
+        fi
+      done
+      if [ $found -eq 0 ]; then
+        echo "No spec file found for number: $arg"
+        exit 1
+      fi
+    else
+      specfiles+=("${matches[0]}")
+    fi
+  done
+else
+  specfiles=(./spec/*.yml)
+fi
+
+# Build a space-separated list of spec basenames for the container
+speclist=""
+for specfile in "${specfiles[@]}"; do
+  speclist="$speclist $(basename "$specfile")"
+done
+
+docker run \
+  -v "$PWD:/usr/local/bin/memex" \
+  --rm -e POSTGRES_PASSWORD=pass posixpg:base bash -c '
+    export PATH="/usr/local/bin/memex/commands/debi:$PATH"
+    export PATH="/usr/local/bin/memex/commands/mmex:$PATH"
+    export PATH="/usr/local/bin/memex/utils:$PATH"
+
+    docker-entrypoint.sh postgres > /dev/null 2>&1 &
+    until pg_isready -h localhost -U postgres -q 2>/dev/null; do sleep 0.1; done
+
+    reset_state() {
+      # Reset DB: drop schema, reload all SQL via \i includes, create root user
+      sudo -u postgres psql -h localhost -U postgres -d memex -q \
+        -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;" 2>/dev/null
+      for f in /usr/local/bin/memex/sql/*.sql; do
+        echo "\\i $f"
+      done | sudo -u postgres psql -h localhost -U postgres -d memex -q -v ON_ERROR_STOP=1 > /dev/null 2>&1
+      mmex_createuser root root false true > /dev/null 2>&1
+
+      # Reset system users created by debi commands
+      for user in $(awk -F: "\$3 >= 1000 { print \$1 }" /etc/passwd); do
+        sudo userdel -r "$user" 2>/dev/null || true
+      done
+      for group in $(awk -F: "\$3 >= 1000 { print \$1 }" /etc/group); do
+        sudo groupdel "$group" 2>/dev/null || true
+      done
+    }
+
+    failed=0
+    specs=('"$speclist"')
+
+    for specbase in ${specs[@]}; do
+      echo "============================================"
+      echo "SPEC: $specbase"
+      echo "============================================"
+      reset_state
+      if specrunner /usr/local/bin/memex/commands /usr/local/bin/memex/spec/"$specbase"; then
+        echo "✅ PASSED: $specbase"
+      else
+        echo "❌ FAILED: $specbase"
+        failed=1
+      fi
+      echo ""
+    done
+
+    exit $failed
+  '

@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -ne 3 || " $* " == *" --help "* ]]; then
+  echo "Usage: debi_chgrp <as_user> <group> <path>" >&2
+  exit 1
+fi
+
+as_user="$1"
+group="$2"
+path="$3"
+
+sudo -u "$as_user" chgrp "$group" "$path"

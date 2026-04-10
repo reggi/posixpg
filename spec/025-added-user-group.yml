@@ -1,0 +1,28 @@
+# yaml-language-server: $schema=../utils/schema.json
+name: creates a new group and assigns a user to it
+tests:
+  - command: dirmodeset
+    comment: Set default directory mode
+    args:
+      mode: 755
+  - command: homeset
+    comment: Set default home directory
+    args:
+      path: /home
+  - command: createuser
+    args:
+      user: alice
+      password: alice
+  - command: mkgroup
+    args:
+      group: bladerunner
+  - command: addusertogroup
+    args:
+      as_user: alice
+      group: bladerunner
+  - command: listusergroups
+    args:
+      user: alice
+    expectStdout: |
+      alice
+      bladerunner

@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -ne 3 || " $* " == *" --help "* ]]; then
+  echo "Usage: debi_chown <as_user> <new_owner> <path>" >&2
+  exit 1
+fi
+
+sudo -u "$1" chown "$2" "$3"

@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ " $* " == *" --help "* ]]; then
+  echo "Usage: mmex_listusers" >&2
+  exit 1
+fi
+
+
+pquery <<EOF
+SELECT username FROM users WHERE NOT superuser;
+EOF

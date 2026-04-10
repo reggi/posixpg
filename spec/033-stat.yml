@@ -1,0 +1,41 @@
+# yaml-language-server: $schema=../utils/schema.json
+name: stat shows file metadata with parity
+tests:
+  - command: dirmodeset
+    args:
+      mode: 755
+  - command: homeset
+    args:
+      path: /home
+  - command: createuser
+    args:
+      user: alice
+      password: alice
+  - command: mkfile
+    args:
+      as_user: alice
+      path: /home/alice/info.txt
+      content: 'hello world'
+      mode: 644
+  - command: stat
+    comment: stat shows correct metadata
+    args:
+      as_user: alice
+      path: /home/alice/info.txt
+    expectStdout: |
+      File: info.txt
+        Type: regular file
+        Mode: 644
+       Owner: alice
+       Group: alice
+  - command: stat
+    comment: stat on directory
+    args:
+      as_user: alice
+      path: /home/alice
+    expectStdout: |
+      File: alice
+        Type: directory
+        Mode: 755
+       Owner: alice
+       Group: alice

@@ -1,0 +1,28 @@
+# yaml-language-server: $schema=../utils/schema.json
+name: Directory execute-bit requirement
+tests:
+  - command: dirmodeset
+    comment: Set default directory mode
+    args:
+      mode: 755
+  - command: homeset
+    comment: Set default home directory
+    args:
+      path: /home
+  - command: createuser
+    args:
+      user: alice
+      password: alice
+  - command: chmod
+    args:
+      as_user: alice
+      mode: 600
+      path: /home/alice
+  - command: mkfile
+    args:
+      as_user: alice
+      mode: 644
+      path: /home/alice/secret.txt
+      content: secret
+    expectExitCode: 1
+    expectStderr: "Permission denied"

@@ -1,0 +1,42 @@
+# yaml-language-server: $schema=../utils/schema.json
+name: exec-only directory allows file access by path but not listing
+tests:
+  - command: dirmodeset
+    args:
+      mode: 755
+  - command: homeset
+    args:
+      path: /home
+  - command: createuser
+    args:
+      user: alice
+      password: alice
+  - command: createuser
+    args:
+      user: bob
+      password: bob
+  - command: mkdir
+    comment: alice creates exec-only dir (711 — others can traverse but not list)
+    args:
+      as_user: alice
+      path: /home/alice/vault
+      mode: 711
+  - command: mkfile
+    comment: world-readable file inside the vault
+    args:
+      as_user: alice
+      path: /home/alice/vault/data.txt
+      content: 'accessible by path'
+      mode: 644
+  - command: ls
+    comment: bob CANNOT list the directory (no read on dir)
+    args:
+      as_user: bob
+      path: /home/alice/vault
+    expectExitCode: 1
+  - command: cat
+    comment: bob CAN read the file by exact path (has exec to traverse)
+    args:
+      as_user: bob
+      path: /home/alice/vault/data.txt
+    expectStdout: 'accessible by path'

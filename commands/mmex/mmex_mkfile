@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -lt 3 || $# -gt 4 || " $* " == *" --help "* ]]; then
+  echo "Usage: mmex_mkfile <as_user> <path> <content> [mode]" >&2
+  exit 1
+fi
+
+as_user="$1"
+path="$2"
+content="$3"
+mode="${4:-}"
+
+pquery --cmd=editfile "$as_user" "$path" "$content"
+
+if [[ -n "$mode" ]]; then
+  mmex_chmod "$as_user" "$mode" "$path"
+fi

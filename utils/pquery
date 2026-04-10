@@ -1,0 +1,147 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cmd=""
+args=()
+silent=false
+json=false
+json_rows=false
+skip_next=false
+log=false
+
+for ((i=1; i<=$#; i++)); do
+  arg="${!i}"
+
+  if $skip_next; then
+    skip_next=false
+    continue
+  fi
+
+  case "$arg" in
+    --silent)
+      silent=true
+      ;;
+    --cmd=*)
+      cmd="${arg#--cmd=}"
+      ;;
+    --cmd)
+      next_index=$((i+1))
+      cmd="${!next_index}"
+      skip_next=true
+      continue
+      ;;
+    --json)
+      json=true
+      ;;
+    --json-rows)
+      json_rows=true
+      ;;
+    --log)
+      log=true
+      ;;
+    *)
+      args+=("$arg")
+      ;;
+  esac
+done
+
+set -- "${args[@]}"
+
+escape_sql_arg() {
+  local arg="$1"
+  printf "%s" "$arg" | sed "s/'/''/g"
+}
+
+build_arg_list() {
+  local out=""
+  for arg in "$@"; do
+    local safe
+    safe=$(escape_sql_arg "$arg")
+    if [[ -z $out ]]; then
+      out="'$safe'"
+    else
+      out+=", '$safe'"
+    fi
+  done
+  printf '%s' "$out"
+}
+
+getquery () {
+  local args_sql
+  args_sql=$(build_arg_list "$@")
+  if [ "$json_rows" = true ]; then
+    echo "SELECT jsonb_agg(row_to_json(t)) FROM $cmd($args_sql) AS t;"
+  elif [ "$json" = true ]; then
+    echo "SELECT (jsonb_agg(row_to_json(t)))[0] FROM $cmd($args_sql) AS t;"
+  else
+    echo "SELECT * FROM $cmd($args_sql);"
+  fi
+}
+
+if [ "$json" = true ] && [ "$json_rows" = true ]; then
+  echo "Error: --json and --json-rows cannot be used together." >&2
+  exit 1
+fi
+
+if [ -n "$cmd" ]; then
+  query="$(getquery "${args[@]}")"
+fi
+
+if [ "$log" = true ]; then
+  echo "$query" >&2
+fi
+
+if [ "$#" -eq 0 ] && [ -z "${query:-}" ]; then
+  exec sudo -u postgres \
+    PGPASSWORD="$POSTGRES_PASSWORD" \
+    psql \
+      -h localhost \
+      -p 5432 \
+      -U "$POSTGRES_USER" \
+      -d "$POSTGRES_DB" \
+      -v ON_ERROR_STOP=1
+fi
+
+output=""
+exit_code=0
+
+if [ -n "${query:-}" ]; then
+  output=$(
+    sudo -u postgres \
+      PGPASSWORD="$POSTGRES_PASSWORD" \
+      psql \
+        -h localhost \
+        -p 5432 \
+        -U "$POSTGRES_USER" \
+        -d "$POSTGRES_DB" \
+        --quiet \
+        --tuples-only \
+        --no-align \
+        -v ON_ERROR_STOP=1 \
+    <<< "$query"
+  ) 2>&1 || exit_code=$?
+else
+  output=$(
+    sudo -u postgres \
+      PGPASSWORD="$POSTGRES_PASSWORD" \
+      psql \
+        -h localhost \
+        -p 5432 \
+        -U "$POSTGRES_USER" \
+        -d "$POSTGRES_DB" \
+        --quiet \
+        --tuples-only \
+        --no-align \
+        -v ON_ERROR_STOP=1 \
+        "$@"
+  ) 2>&1 || exit_code=$?
+fi
+
+if [ "$silent" = false ]; then
+  echo "$output"
+fi
+
+# Normalize any nonzero exit code to 1
+if (( exit_code != 0 )); then
+  exit 1
+fi

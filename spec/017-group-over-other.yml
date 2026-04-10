@@ -1,0 +1,56 @@
+# yaml-language-server: $schema=../utils/schema.json
+name: group permission takes priority over other even when other is more permissive
+tests:
+  - command: dirmodeset
+    args:
+      mode: 755
+  - command: homeset
+    args:
+      path: /home
+  - command: createuser
+    args:
+      user: alice
+      password: alice
+  - command: createuser
+    args:
+      user: bob
+      password: bob
+  - command: mkgroup
+    args:
+      group: restricted
+  - command: addusertogroup
+    args:
+      as_user: alice
+      group: restricted
+  - command: addusertogroup
+    args:
+      as_user: bob
+      group: restricted
+  - command: mkfile
+    comment: mode 604 — owner rw-, group ---, other r-- (other CAN read, group CANNOT)
+    args:
+      as_user: alice
+      path: /home/alice/trap.txt
+      content: 'you should not see this'
+      mode: 604
+  - command: chgrp
+    args:
+      as_user: alice
+      group: restricted
+      path: /home/alice/trap.txt
+  - command: cat
+    comment: bob is in the group — group bits (---) apply, NOT other bits (r--)
+    args:
+      as_user: bob
+      path: /home/alice/trap.txt
+    expectExitCode: 1
+  - command: createuser
+    args:
+      user: charlie
+      password: charlie
+  - command: cat
+    comment: charlie is NOT in the group — other bits (r--) apply, CAN read
+    args:
+      as_user: charlie
+      path: /home/alice/trap.txt
+    expectStdout: 'you should not see this'

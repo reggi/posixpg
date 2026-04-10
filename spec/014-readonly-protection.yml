@@ -1,0 +1,56 @@
+# yaml-language-server: $schema=../utils/schema.json
+name: owner cannot write to their own read-only file
+tests:
+  - command: dirmodeset
+    args:
+      mode: 755
+  - command: homeset
+    args:
+      path: /home
+  - command: createuser
+    args:
+      user: alice
+      password: alice
+  - command: mkfile
+    comment: alice creates a file then makes it read-only
+    args:
+      as_user: alice
+      path: /home/alice/frozen.txt
+      content: 'immutable data'
+      mode: 444
+  - command: cat
+    comment: alice can still read the file
+    args:
+      as_user: alice
+      path: /home/alice/frozen.txt
+    expectStdout: 'immutable data'
+  - command: mkfile
+    comment: alice tries to overwrite — should fail (no write bit even for owner)
+    args:
+      as_user: alice
+      path: /home/alice/frozen.txt
+      content: 'attempted overwrite'
+    expectExitCode: 1
+  - command: cat
+    comment: content is unchanged
+    args:
+      as_user: alice
+      path: /home/alice/frozen.txt
+    expectStdout: 'immutable data'
+  - command: chmod
+    comment: but owner CAN chmod to restore write access
+    args:
+      as_user: alice
+      mode: 644
+      path: /home/alice/frozen.txt
+  - command: mkfile
+    comment: now alice can write
+    args:
+      as_user: alice
+      path: /home/alice/frozen.txt
+      content: 'updated after chmod'
+  - command: cat
+    args:
+      as_user: alice
+      path: /home/alice/frozen.txt
+    expectStdout: 'updated after chmod'

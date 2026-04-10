@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -ne 2 || " $* " == *" --help "* ]]; then
+  echo "Usage: mmex_passwd <user> <new_password>" >&2
+  exit 1
+fi
+
+user="$1"
+password="$2"
+
+pepper="${BCRYPT_PEPPER:?Error: BCRYPT_PEPPER must be set in env}"
+hash=$(htpasswd -nbBC 10 "" "${password}${pepper}" | tr -d ':\n' | sed 's/^\$2y\$/\$2a\$/')
+
+pquery --cmd=passwd "$user" "$hash" --silent

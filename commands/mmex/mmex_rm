@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -ne 2 || " $* " == *" --help "* ]]; then
+  echo "Usage: mmex_rm <as_user> <path>" >&2
+  exit 1
+fi
+
+as_user="$1"
+path="$2"
+
+pquery --cmd=rm "$as_user" "$path"

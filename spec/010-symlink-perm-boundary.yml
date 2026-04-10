@@ -1,0 +1,59 @@
+# yaml-language-server: $schema=../utils/schema.json
+name: symlink does not bypass target directory permissions
+tests:
+  - command: dirmodeset
+    args:
+      mode: 755
+  - command: homeset
+    args:
+      path: /home
+  - command: createuser
+    args:
+      user: alice
+      password: alice
+  - command: createuser
+    args:
+      user: bob
+      password: bob
+  - command: mkdir
+    comment: alice creates a private directory
+    args:
+      as_user: alice
+      path: /home/alice/private
+      mode: 700
+  - command: mkfile
+    comment: alice creates a secret file inside private dir
+    args:
+      as_user: alice
+      path: /home/alice/private/secret.txt
+      content: 'top secret'
+  - command: cat
+    comment: bob CANNOT read directly — private dir blocks traversal
+    args:
+      as_user: bob
+      path: /home/alice/private/secret.txt
+    expectExitCode: 1
+  - command: mkdir
+    comment: alice creates a public directory
+    args:
+      as_user: alice
+      path: /home/alice/public
+      mode: 755
+  - command: ln
+    comment: alice creates symlink in public dir pointing to private file
+    args:
+      as_user: alice
+      src: /home/alice/private/secret.txt
+      dest: /home/alice/public/link.txt
+  - command: cat
+    comment: bob reads symlink — should STILL fail, target is in restricted dir
+    args:
+      as_user: bob
+      path: /home/alice/public/link.txt
+    expectExitCode: 1
+  - command: cat
+    comment: alice CAN read through the symlink (she owns the private dir)
+    args:
+      as_user: alice
+      path: /home/alice/public/link.txt
+    expectStdout: 'top secret'

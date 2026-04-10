@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -ne 2 || " $* " == *" --help "* ]]; then
+  echo "Usage: mmex_login <user> <password>" >&2
+  exit 1
+fi
+
+user="$1"
+password="$2"
+
+pepper="${BCRYPT_PEPPER:?Error: BCRYPT_PEPPER must be set in env}"
+
+pquery --cmd=login "$user" "${password}${pepper}" --silent

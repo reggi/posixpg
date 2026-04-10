@@ -1,0 +1,34 @@
+addusertogroup as_user group
+append as_user path content
+cat as_user path
+checkauth as_user path
+chgrp as_user group path
+chmod as_user mode path
+chmod_r as_user mode path
+chown as_user new_owner path
+cp as_user src dest
+createuser user password createdir superuser
+deleteuser user
+dirmodeset mode
+fileperm as_user path
+find as_user path name_pattern
+getowner path
+homeset path
+id user
+listusergroups user
+ln as_user src dest
+login user password
+ls as_user path
+mkdir as_user path mode
+mkdir_p as_user path mode
+mkfile as_user path content mode
+mkgroup group
+mv as_user src dest
+passwd user new_password
+readlink as_user path
+rm as_user path
+rmdir as_user path
+stat as_user path
+test as_user flag path
+touch as_user path
+umask mask

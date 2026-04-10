@@ -1,0 +1,62 @@
+name: Test Suite
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t posixpg:base .
+
+      - name: Run all specs
+        run: |
+          chmod +x ./commands/debi/* ./commands/mmex/* ./utils/*
+          docker run \
+            -v "$PWD:/usr/local/bin/memex" \
+            --rm -e POSTGRES_PASSWORD=pass posixpg:base bash -c '
+              export PATH="/usr/local/bin/memex/commands/debi:$PATH"
+              export PATH="/usr/local/bin/memex/commands/mmex:$PATH"
+              export PATH="/usr/local/bin/memex/utils:$PATH"
+
+              docker-entrypoint.sh postgres > /dev/null 2>&1 &
+              until pg_isready -h localhost -U postgres -q 2>/dev/null; do sleep 0.1; done
+
+              reset_state() {
+                sudo -u postgres psql -h localhost -U postgres -d memex -q \
+                  -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;" 2>/dev/null
+                for f in /usr/local/bin/memex/sql/*.sql; do
+                  echo "\\i $f"
+                done | sudo -u postgres psql -h localhost -U postgres -d memex -q -v ON_ERROR_STOP=1 > /dev/null 2>&1
+                mmex_createuser root root false true > /dev/null 2>&1
+                for user in $(awk -F: "\$3 >= 1000 { print \$1 }" /etc/passwd); do
+                  sudo userdel -r "$user" 2>/dev/null || true
+                done
+                for group in $(awk -F: "\$3 >= 1000 { print \$1 }" /etc/group); do
+                  sudo groupdel "$group" 2>/dev/null || true
+                done
+              }
+
+              failed=0
+              for specfile in /usr/local/bin/memex/spec/*.yml; do
+                specbase=$(basename "$specfile")
+                echo "============================================"
+                echo "SPEC: $specbase"
+                echo "============================================"
+                reset_state
+                if specrunner /usr/local/bin/memex/commands "$specfile"; then
+                  echo "✅ PASSED: $specbase"
+                else
+                  echo "❌ FAILED: $specbase"
+                  failed=1
+                fi
+                echo ""
+              done
+              exit $failed
+            '

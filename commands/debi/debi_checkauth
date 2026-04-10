@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -ne 2 || " $* " == *" --help "* ]]; then
+  echo "Usage: debi_checkauth <as_user> <path>" >&2
+  exit 1
+fi
+
+username="$1"
+path="$2"
+
+# Get file mode, owner, group
+read -r mode owner group < <(stat -c "%a %U %G" "$path")
+
+# Extract permission digits
+perm_owner="${mode:0:1}"
+perm_group="${mode:1:1}"
+perm_other="${mode:2:1}"
+
+# Determine which permission block applies
+access_idx=2
+if [[ "$username" == "$owner" ]]; then
+  access_idx=0
+elif id -nG "$username" | grep -qw "$group"; then
+  access_idx=1
+fi
+
+# Select correct permission digit
+perm_digit="${perm_owner}"
+[[ $access_idx -eq 1 ]] && perm_digit="${perm_group}"
+[[ $access_idx -eq 2 ]] && perm_digit="${perm_other}"
+
+# Convert permission digit to rwx string
+perm_rwx="---"
+(( perm_digit & 4 )) && perm_rwx="r${perm_rwx:1:2}"
+(( perm_digit & 2 )) && perm_rwx="${perm_rwx:0:1}w${perm_rwx:2:1}"
+(( perm_digit & 1 )) && perm_rwx="${perm_rwx:0:2}x"
+
+echo "$perm_rwx"

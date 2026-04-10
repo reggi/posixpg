@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -lt 3 || $# -gt 4 || " $* " == *" --help "* ]]; then
+  echo "Usage: debi_mkfile <as_user> <path> <content> [mode]" >&2
+  exit 1
+fi
+
+as_user="$1"
+path="$2"
+content="$3"
+mode="${4:-}"
+
+# Read umask from shared state file, default to 0022
+UMASK_FILE="/tmp/.memex_umask"
+if [[ -f "$UMASK_FILE" ]]; then
+  current_umask=$(cat "$UMASK_FILE")
+else
+  current_umask="0022"
+fi
+
+sudo -u "$as_user" bash -c "umask $current_umask; cat > '$path'" <<< "$content"
+
+if [[ -n "$mode" ]]; then
+  debi_chmod "$as_user" "$mode" "$path"
+fi

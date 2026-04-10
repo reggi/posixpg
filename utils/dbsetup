@@ -1,0 +1,15 @@
+#!/bin/bash
+# Determine the directory this script lives in
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+
+# Run all .sql files in numeric order (prefix 0000…)
+dir="$SCRIPT_DIR/../sql"
+[ -d "$dir" ] || continue
+find "$dir" -maxdepth 1 -type f -name '*.sql' | sort -V | \
+
+while IFS= read -r sql_file; do
+  echo "$sql_file"
+  runsql "$sql_file"
+done
+
+mmex_createuser root root false true

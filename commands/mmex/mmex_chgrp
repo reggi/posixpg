@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -ne 3 || " $* " == *" --help "* ]]; then
+  echo "Usage: mmex_chgrp <as_user> <group> <path>" >&2
+  exit 1
+fi
+
+as_user="$1"
+group="$2"
+path="$3"
+
+pquery --cmd=chgrp "$as_user" "$group" "$path" --silent

@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -ne 3 || " $* " == *" --help "* ]]; then
+  echo "Usage: debi_cp <as_user> <src> <dest>" >&2
+  exit 1
+fi
+
+sudo -u "$1" cp "$2" "$3"

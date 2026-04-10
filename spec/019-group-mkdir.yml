@@ -1,0 +1,62 @@
+# yaml-language-server: $schema=../utils/schema.json
+name: group member can mkdir in group-writable directory
+tests:
+  - command: dirmodeset
+    args:
+      mode: 755
+  - command: homeset
+    args:
+      path: /home
+  - command: createuser
+    args:
+      user: alice
+      password: alice
+  - command: createuser
+    args:
+      user: bob
+      password: bob
+  - command: mkgroup
+    args:
+      group: devs
+  - command: addusertogroup
+    args:
+      as_user: alice
+      group: devs
+  - command: addusertogroup
+    args:
+      as_user: bob
+      group: devs
+  - command: mkdir
+    comment: alice creates a group-writable project dir
+    args:
+      as_user: alice
+      path: /home/alice/project
+      mode: 770
+  - command: chgrp
+    args:
+      as_user: alice
+      group: devs
+      path: /home/alice/project
+  - command: mkdir
+    comment: bob can mkdir inside the group-writable dir
+    args:
+      as_user: bob
+      path: /home/alice/project/feature
+      mode: 755
+  - command: mkfile
+    comment: bob creates a file in his subdirectory
+    args:
+      as_user: bob
+      path: /home/alice/project/feature/notes.txt
+      content: 'work in progress'
+  - command: cat
+    comment: alice can read bobs work
+    args:
+      as_user: alice
+      path: /home/alice/project/feature/notes.txt
+    expectStdout: 'work in progress'
+  - command: getowner
+    comment: the subdirectory is owned by bob
+    args:
+      path: /home/alice/project/feature
+    expectStdout: bob

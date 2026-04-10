@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -lt 2 || $# -gt 3 || " $* " == *" --help "* ]]; then
+  echo "Usage: mmex_find <as_user> <path> [name_pattern]" >&2
+  exit 1
+fi
+
+as_user="$1"
+path="$2"
+pattern="${3:-}"
+
+if [[ -n "$pattern" ]]; then
+  pquery --cmd=find "$as_user" "$path" "$pattern"
+else
+  pquery --cmd=find "$as_user" "$path"
+fi

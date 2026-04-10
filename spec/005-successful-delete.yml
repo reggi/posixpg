@@ -1,0 +1,30 @@
+# yaml-language-server: $schema=../utils/schema.json
+name: delete a file
+tests:
+  - command: dirmodeset
+    comment: Set default directory mode
+    args:
+      mode: 755
+  - command: homeset
+    comment: Set default home directory
+    args:
+      path: /home
+  - command: createuser
+    args:
+      user: alice
+      password: alice
+  - command: mkfile
+    args: 
+      as_user: alice
+      mode: 755
+      path: /home/alice/baz.txt
+      content: 'example content'
+  - command: rm
+    args:
+      as_user: alice
+      path: /home/alice/baz.txt
+  - command: cat
+    args: 
+      as_user: alice
+      path: /home/alice/baz.txt
+    expectExitCode: 1

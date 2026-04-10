@@ -1,0 +1,46 @@
+# yaml-language-server: $schema=../utils/schema.json
+name: dot and dotdot path resolution
+tests:
+  - command: dirmodeset
+    args:
+      mode: 755
+  - command: homeset
+    args:
+      path: /home
+  - command: createuser
+    args:
+      user: alice
+      password: alice
+  - command: mkdir
+    args:
+      as_user: alice
+      path: /home/alice/a
+      mode: 755
+  - command: mkdir
+    args:
+      as_user: alice
+      path: /home/alice/a/b
+      mode: 755
+  - command: mkfile
+    args:
+      as_user: alice
+      path: /home/alice/a/b/file.txt
+      content: 'found it'
+  - command: cat
+    comment: path with .. resolves correctly
+    args:
+      as_user: alice
+      path: /home/alice/a/b/../b/file.txt
+    expectStdout: 'found it'
+  - command: cat
+    comment: path with . resolves correctly
+    args:
+      as_user: alice
+      path: /home/alice/a/./b/file.txt
+    expectStdout: 'found it'
+  - command: cat
+    comment: multiple .. resolves correctly
+    args:
+      as_user: alice
+      path: /home/alice/a/b/../../a/b/file.txt
+    expectStdout: 'found it'

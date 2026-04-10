@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ " $* " == *" --help "* ]]; then
+  echo "Usage: debi_home" >&2
+  exit 1
+fi
+
+# grep -h '^HOME=' /etc/default/useradd | cut -d= -f2 || 
+grep -h '^DHOME=' /etc/adduser.conf | cut -d= -f2

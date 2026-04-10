@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ " $* " == *" --help "* ]]; then
+  echo "Usage: debi_dirmode" >&2
+  exit 1
+fi
+
+dir_mode=$(grep -E '^DIR_MODE=' /etc/adduser.conf | cut -d= -f2)
+dir_mode=${dir_mode:-0755}        # fallback if unset
+clean_mode=${dir_mode#0}          # remove leading 0
+echo "$clean_mode"

@@ -1,0 +1,61 @@
+# yaml-language-server: $schema=../utils/schema.json
+name: test public access with permissions 770
+tests:
+  - command: dirmodeset
+    comment: Set default directory mode
+    args:
+      mode: 755
+  - command: homeset
+    comment: Set default home directory
+    args:
+      path: /home
+  - command: createuser
+    args:
+      user: bob
+      password: password
+  - command: createuser
+    args:
+      user: alice
+      password: password
+  - command: mkdir
+    args: 
+      as_user: alice
+      mode: 755
+      path: /home/alice/foo
+  - command: mkdir
+    args: 
+      as_user: alice
+      mode: 755
+      path: /home/alice/foo/bar
+  - command: mkfile
+    args: 
+      as_user: alice
+      mode: 755
+      path: /home/alice/foo/bar/baz.txt
+      content: 'example content'
+  - command: cat
+    args:
+      as_user: bob
+      path: /home/alice/foo/bar/baz.txt
+    expectStdout: 'example content'
+  - command: chmod
+    args:
+      as_user: alice
+      mode: 770
+      path: /home/alice/foo/bar
+  - command: fileperm
+    args:
+      as_user: alice
+      path: /home/alice/foo/bar
+    expectStdout: 770
+  - command: cat
+    args:
+      as_user: alice
+      path: /home/alice/foo/bar/baz.txt
+    expectStdout: 'example content'
+  - command: cat
+    args:
+      as_user: bob
+      path: /home/alice/foo/bar/baz.txt
+    expectExitCode: 1
+

@@ -1,0 +1,63 @@
+# yaml-language-server: $schema=../utils/schema.json
+name: copy files with permission checks
+tests:
+  - command: dirmodeset
+    args:
+      mode: 755
+  - command: homeset
+    args:
+      path: /home
+  - command: createuser
+    args:
+      user: alice
+      password: alice
+  - command: createuser
+    args:
+      user: bob
+      password: bob
+  - command: mkfile
+    args:
+      as_user: alice
+      path: /home/alice/doc.txt
+      content: 'important document'
+  - command: cp
+    comment: alice copies her own file
+    args:
+      as_user: alice
+      src: /home/alice/doc.txt
+      dest: /home/alice/doc-backup.txt
+  - command: cat
+    comment: copy has same content
+    args:
+      as_user: alice
+      path: /home/alice/doc-backup.txt
+    expectStdout: 'important document'
+  - command: cat
+    comment: original still exists
+    args:
+      as_user: alice
+      path: /home/alice/doc.txt
+    expectStdout: 'important document'
+  - command: cp
+    comment: bob cannot copy into alice's dir (no write perm)
+    args:
+      as_user: bob
+      src: /home/alice/doc.txt
+      dest: /home/alice/hacked.txt
+    expectExitCode: 1
+  - command: cp
+    comment: bob can copy alice's readable file to his own dir
+    args:
+      as_user: bob
+      src: /home/alice/doc.txt
+      dest: /home/bob/copy.txt
+  - command: cat
+    args:
+      as_user: bob
+      path: /home/bob/copy.txt
+    expectStdout: 'important document'
+  - command: getowner
+    comment: copy is owned by bob
+    args:
+      path: /home/bob/copy.txt
+    expectStdout: bob

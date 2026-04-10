@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ " $* " == *" --help "* ]]; then
+  echo "Usage: mmex_dirmode" >&2
+  exit 1
+fi
+
+pquery <<EOF
+SELECT todecimal(int) FROM env WHERE key = 'DEFAULT_DIR_MODE';
+EOF

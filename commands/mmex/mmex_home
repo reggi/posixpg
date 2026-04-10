@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ " $* " == *" --help "* ]]; then
+  echo "Usage: mmex_home" >&2
+  exit 1
+fi
+
+pquery <<EOF
+SELECT f.path 
+FROM env e
+JOIN vfiles f ON e.file_id = f.file_id
+WHERE e.key = 'DEFAULT_HOME_DIR';
+EOF

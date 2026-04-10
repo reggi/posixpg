@@ -1,0 +1,12 @@
+CREATE TABLE IF NOT EXISTS user_files (
+  user_file_id SERIAL PRIMARY KEY,
+  user_id INT NOT NULL REFERENCES users (user_id),
+  file_id INT NOT NULL REFERENCES files (file_id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE (user_id, file_id)
+);
+
+CREATE TRIGGER set_updated_at BEFORE
+UPDATE ON user_files FOR EACH ROW
+EXECUTE FUNCTION updated_at ();

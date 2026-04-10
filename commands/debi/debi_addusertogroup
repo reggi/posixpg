@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -ne 2 || " $* " == *" --help "* ]]; then
+  echo "Usage: debi_addusertogroup <as_user> <group>" >&2
+  exit 1
+fi
+
+as_user="$1"
+group="$2"
+
+sudo usermod -aG "$group" "$as_user"

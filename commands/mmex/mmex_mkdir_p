@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -lt 2 || $# -gt 3 || " $* " == *" --help "* ]]; then
+  echo "Usage: mmex_mkdir_p <as_user> <path> [mode]" >&2
+  exit 1
+fi
+
+as_user="$1"
+path="$2"
+mode="${3:-}"
+
+if [[ -n "$mode" ]]; then
+  pquery --cmd=mkdir_p "$as_user" "$path" "$mode" --silent
+else
+  pquery --cmd=mkdir_p "$as_user" "$path" --silent
+fi

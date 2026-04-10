@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# require at least user and path
+if [[ $# -ne 1 || " $* " == *" --help "* ]]; then
+  echo "Usage: debi_mkgroup <group>" >&2
+  exit 1
+fi
+
+group="$1"
+
+if getent group "$group" > /dev/null 2>&1; then
+  exit 0
+else
+  sudo groupadd "$group"
+fi

@@ -1,0 +1,73 @@
+# yaml-language-server: $schema=../utils/schema.json
+name: test checks file existence and type
+tests:
+  - command: dirmodeset
+    args:
+      mode: 755
+  - command: homeset
+    args:
+      path: /home
+  - command: createuser
+    args:
+      user: alice
+      password: alice
+  - command: mkfile
+    args:
+      as_user: alice
+      path: /home/alice/file.txt
+      content: 'data'
+  - command: mkdir
+    args:
+      as_user: alice
+      path: /home/alice/dir
+      mode: 755
+  - command: ln
+    args:
+      as_user: alice
+      src: /home/alice/file.txt
+      dest: /home/alice/link.txt
+  - command: test
+    comment: file exists
+    args:
+      as_user: alice
+      flag: e
+      path: /home/alice/file.txt
+  - command: test
+    comment: is regular file
+    args:
+      as_user: alice
+      flag: f
+      path: /home/alice/file.txt
+  - command: test
+    comment: file is not a directory
+    args:
+      as_user: alice
+      flag: d
+      path: /home/alice/file.txt
+    expectExitCode: 1
+  - command: test
+    comment: directory exists
+    args:
+      as_user: alice
+      flag: d
+      path: /home/alice/dir
+  - command: test
+    comment: dir is not a regular file
+    args:
+      as_user: alice
+      flag: f
+      path: /home/alice/dir
+    expectExitCode: 1
+  - command: test
+    comment: symlink detected
+    args:
+      as_user: alice
+      flag: L
+      path: /home/alice/link.txt
+  - command: test
+    comment: nonexistent file returns false
+    args:
+      as_user: alice
+      flag: e
+      path: /home/alice/nope.txt
+    expectExitCode: 1

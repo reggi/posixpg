@@ -1,0 +1,19 @@
+# yaml-language-server: $schema=../utils/schema.json
+name: demonstrates a group with this username is created with the user
+tests:
+  - command: dirmodeset
+    comment: Set default directory mode
+    args:
+      mode: 755
+  - command: homeset
+    comment: Set default home directory
+    args:
+      path: /home
+  - command: createuser
+    args:
+      user: alice
+      password: alice
+  - command: listusergroups
+    args:
+      user: alice
+    expectStdout: alice

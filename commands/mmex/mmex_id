@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -ne 1 || " $* " == *" --help "* ]]; then
+  echo "Usage: mmex_id <user>" >&2
+  exit 1
+fi
+
+user="$1"
+
+result=$(
+  pquery \
+  --set=username="'$user'" <<EOF
+SELECT * FROM id(:username);
+EOF
+)
+
+IFS='|' read -r username group home superuser <<< "$result"
+
+echo "User: $username"
+echo "Group: $group"
+echo "Home: $home"
+if [[ "$superuser" == "t" ]]; then
+  is_superuser=true
+else
+  is_superuser=false
+fi
+echo "Superuser: $is_superuser"

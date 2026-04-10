@@ -1,0 +1,44 @@
+# yaml-language-server: $schema=../utils/schema.json
+name: superuser can chown, non-superuser cannot
+tests:
+  - command: dirmodeset
+    args:
+      mode: 755
+  - command: homeset
+    args:
+      path: /home
+  - command: createuser
+    args:
+      user: alice
+      password: alice
+  - command: createuser
+    args:
+      user: bob
+      password: bob
+  - command: mkfile
+    args:
+      as_user: alice
+      path: /home/alice/file.txt
+      content: 'owned by alice'
+  - command: getowner
+    args:
+      path: /home/alice/file.txt
+    expectStdout: alice
+  - command: chown
+    comment: alice cannot chown (not superuser)
+    args:
+      as_user: alice
+      new_owner: bob
+      path: /home/alice/file.txt
+    expectExitCode: 1
+  - command: chown
+    comment: root can chown
+    args:
+      as_user: root
+      new_owner: bob
+      path: /home/alice/file.txt
+  - command: getowner
+    comment: ownership changed
+    args:
+      path: /home/alice/file.txt
+    expectStdout: bob

@@ -1,0 +1,63 @@
+# yaml-language-server: $schema=../utils/schema.json
+name: world-writable directory allows cross-user file creation and deletion
+tests:
+  - command: dirmodeset
+    args:
+      mode: 755
+  - command: homeset
+    args:
+      path: /home
+  - command: createuser
+    args:
+      user: alice
+      password: alice
+  - command: createuser
+    args:
+      user: bob
+      password: bob
+  - command: mkdir
+    comment: alice creates a world-writable shared directory
+    args:
+      as_user: alice
+      path: /home/alice/shared
+      mode: 777
+  - command: mkfile
+    comment: bob cannot create files in alice's 755 home dir
+    args:
+      as_user: bob
+      path: /home/alice/nope.txt
+      content: 'should fail'
+    expectExitCode: 1
+  - command: mkfile
+    comment: bob CAN create files in the 777 shared directory
+    args:
+      as_user: bob
+      path: /home/alice/shared/bobs-file.txt
+      content: 'hello from bob'
+  - command: cat
+    args:
+      as_user: alice
+      path: /home/alice/shared/bobs-file.txt
+    expectStdout: 'hello from bob'
+  - command: getowner
+    comment: bobs file is owned by bob
+    args:
+      path: /home/alice/shared/bobs-file.txt
+    expectStdout: bob
+  - command: mkfile
+    comment: alice creates her own file in the shared dir
+    args:
+      as_user: alice
+      path: /home/alice/shared/alices-file.txt
+      content: 'hello from alice'
+  - command: rm
+    comment: bob deletes alices file — in Unix unlink checks parent dir write
+    args:
+      as_user: bob
+      path: /home/alice/shared/alices-file.txt
+  - command: cat
+    comment: verify file is gone
+    args:
+      as_user: alice
+      path: /home/alice/shared/alices-file.txt
+    expectExitCode: 1

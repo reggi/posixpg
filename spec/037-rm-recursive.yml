@@ -1,0 +1,49 @@
+# yaml-language-server: $schema=../utils/schema.json
+name: rm removes directories with contents
+tests:
+  - command: dirmodeset
+    args:
+      mode: 755
+  - command: homeset
+    args:
+      path: /home
+  - command: createuser
+    args:
+      user: alice
+      password: alice
+  - command: mkdir
+    args:
+      as_user: alice
+      path: /home/alice/project
+      mode: 755
+  - command: mkdir
+    args:
+      as_user: alice
+      path: /home/alice/project/src
+      mode: 755
+  - command: mkfile
+    args:
+      as_user: alice
+      path: /home/alice/project/src/main.txt
+      content: 'code here'
+  - command: mkfile
+    args:
+      as_user: alice
+      path: /home/alice/project/readme.txt
+      content: 'readme'
+  - command: rm
+    comment: rm on a directory deletes everything inside
+    args:
+      as_user: alice
+      path: /home/alice/project
+  - command: cat
+    comment: directory and all contents are gone
+    args:
+      as_user: alice
+      path: /home/alice/project/src/main.txt
+    expectExitCode: 1
+  - command: cat
+    args:
+      as_user: alice
+      path: /home/alice/project/readme.txt
+    expectExitCode: 1
